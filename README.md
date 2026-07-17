@@ -77,10 +77,10 @@ Because this isn't in the Chrome Web Store (I will NOT support Google in any way
 1. Download or clone this repository to your machine.
 2. Open `chrome://extensions` in any Chromium-based browser (Chrome, Brave, Edge, Vivaldi).
 3. Toggle **Developer mode** (top-right corner).
-4. Click **Load unpacked** (top-left) and select the `extension/` folder from this repo.
+4. Click **Load unpacked** (top-left) and select the `PARSEC/` folder from this repo.
 5. Open a new tab.
 
-*(To package it yourself for store upload, just zip the contents of the `extension/` folder, ensuring `manifest.json` is at the root of the zip archive).*
+*(To package it yourself for store upload, just zip the contents of the `PARSEC/` folder, ensuring `manifest.json` is at the root of the zip archive).*
 
 ---
 
@@ -103,7 +103,7 @@ Here is exactly why the extension requests the permissions it does:
 If you want to modify this or contribute, the codebase is written in vanilla JS with ES modules. There are no heavy frameworks, bundlers, or build steps—which makes it load instantly.
 
 ```
-extension/
+PARSEC/
 ├── manifest.json          MV3 manifest
 ├── background.js          Tiny service worker (handles open tabs + first run)
 ├── newtab.html            The main entry page
