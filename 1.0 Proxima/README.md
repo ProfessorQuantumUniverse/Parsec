@@ -1,116 +1,130 @@
-# Spatium
+# PARSEC
 
-A gorgeous new‑tab page that turns every browser tab into a window on the universe.
-Daily imagery from NASA, Hubble, James Webb, ESO and more.
+A clean, lightweight new tab page that loads high-res space photography from NASA, ESA, and other observatories every time you open a tab. No tracking, no accounts, and no bloat.
 
-> **No tracking. No accounts. No subscriptions. FOSS** Everything runs
-> locally in your browser. The only network requests made are to the public
-> space‑agency APIs you enable, to fetch pictures.
-
-This is a ground‑up, fully open costum rewrite inspired by the original "Spatium" extension. 
+This is a ground-up, open-source rewrite inspired by the original "Spatium" extension. 
 
 ---
 
-## Image sources
+## The Ground Rules
 
-Pick any combination in **Settings → Sources**. Enabled sources are interleaved
-so consecutive tabs come from different observatories.
+* **No tracking, ever.** No telemetry, no third-party scripts, no analytics.
+* **No logins or cloud sync.** Everything is saved locally in your browser.
+* **Direct connections.** The extension only talks directly to the public APIs of the space agencies you enable. No middleman servers.
 
-| Source | What it is |
-| --- | --- |
-| **NASA APOD** | Astronomy Picture of the Day (+ random archive days) |
-| **Hubble** | ESA/Hubble *Picture of the Week* |
-| **James Webb** | ESA/Webb image releases |
-| **ESO** | European Southern Observatory *Picture of the Week* (VLT, Chile) |
-| **NASA EPIC** | Full‑disk Earth from the DSCOVR spacecraft at Lagrange point L1 |
-| **NASA Library** | NASA Image & Video Library, rotating deep‑sky search queries |
-| **NASA Image of the Day** | The classic curated daily feed |
+---
 
-All feeds are public and key‑free. APOD works on a shared demo key; drop in your
-own free key (from [api.nasa.gov](https://api.nasa.gov)) in **Settings → Data**
-to lift the rate limit.
+## Image Sources
 
-## Nerd features
+You can mix and match these in **Settings → Sources**. The extension automatically rotates through your enabled feeds so consecutive tabs keep things fresh.
 
-- **Live moon widget** — phase name, % illumination and a countdown to the next
-  full moon, all computed on‑device.
-- **Sun & golden hour** — sunrise, sunset, dusk and golden‑hour times from your
-  location (which never leaves the browser).
-- **Nerd stats** — local **sidereal time**, Julian day, day‑of‑year and a
-  countdown to the next solstice/equinox.
-- **On this day in space** — a hand‑curated almanac of astronomical milestones.
-- **Image details panel** — full captions, credits, source links, and
-  source‑specific facts (e.g. EPIC's sub‑solar point).
-- **Favorites & history** — heart the images you love and revisit recent ones.
-- **One‑tap HD download** and links to the original full‑resolution files.
-- **Twinkling starfield** — a battery‑friendly animated star layer that pauses
-  when the tab is hidden.
-- **Full keyboard control** and a **Zen mode** that hides all UI.
-- **Export / import** your whole configuration as a JSON file.
+| Source | What it actually is |
+| :--- | :--- |
+| **NASA APOD** | Astronomy Picture of the Day. Includes random archive days to keep it interesting. |
+| **Hubble** | ESA’s Hubble *Picture of the Week*. |
+| **James Webb** | ESA’s James Webb image releases (unbelievable detail). |
+| **ESO** | European Southern Observatory *Picture of the Week* (mostly ground-based telescopes in Chile). |
+| **NASA EPIC** | Full-disk photos of Earth taken by the DSCOVR satellite at Lagrange point L1. |
+| **NASA Library** | Searches rotating deep-sky queries from NASA’s media library. |
+| **NASA Image of the Day** | The classic, manually curated NASA daily feature feed. |
 
-## Customisation
+All feeds are free and don't require an API key. APOD uses a shared demo key out of the box; if you hit rate limits, you can generate your own free key at [api.nasa.gov](https://api.nasa.gov) and drop it into **Settings → Data**.
 
-Accent colour, UI tint (Cosmos / Midnight / Mono), image fit (cover / contain),
-background dim & blur, vignette, clock format, search engine, and a toggle for
-every widget — all in the settings drawer.
+---
 
-## Keyboard shortcuts
+## What else is built-in?
+
+I wanted a few handy astronomical tools on my screen, so I built them to run entirely offline:
+
+* **Local moon calculator:** Computes the current moon phase, illumination percentage, and a countdown to the next full moon entirely on-device (zero network requests).
+* **Sun & golden hour:** Calculates exact sunrise, sunset, dusk, and golden-hour times based on your location. (Coordinates stay strictly in your browser).
+* **Astro stats:** Local sidereal time, Julian day, day of the year, and a countdown to the next solstice or equinox.
+* **On this day in space:** A hand-curated mini-almanac of spaceflight and astronomy milestones.
+* **Image details:** A slide-out panel with full captions, credits, and direct links to the original high-resolution source files.
+* **Favorites & history:** "Heart" the images you love and quickly browse back through your recent tabs.
+* **Twinkling starfield:** A gentle, battery-friendly star layer. It automatically pauses when the tab is hidden, so it won’t eat up your laptop's CPU.
+* **Zen mode:** Tap `H` to instantly hide all UI elements and just enjoy the view.
+
+---
+
+## Customization
+
+You can adjust almost everything in the settings panel:
+* Accent colors and UI themes (Cosmos, Midnight, or clean Grayscale).
+* Image fitting (stretch-to-fill/cover, or contain the whole image).
+* Background dimming, blur, and vignette levels to keep your desktop icons or clock readable.
+* Search bar engine and custom shortcuts.
+
+---
+
+## Keyboard Shortcuts
 
 | Key | Action | Key | Action |
 | --- | --- | --- | --- |
-| `→` `N` `Space` | Next image | `I` | Image details |
-| `←` `P` | Previous image | `D` | Download HD |
-| `R` | Shuffle | `S` `,` | Settings |
-| `F` | Favorite | `/` | Focus search |
-| `H` | Zen mode | `?` | Shortcuts help |
-| `Esc` | Close / exit | | |
+| `→` / `N` / `Space` | Next image | `I` | Image details |
+| `←` / `P` | Previous image | `D` | Download HD photo |
+| `R` | Shuffle random image | `S` or `,` | Open settings |
+| `F` | Add to favorites | `/` | Focus search bar |
+| `H` | Toggle Zen mode | `?` | Show shortcut list |
+| `Esc` | Close panels | | |
 
-## Install (load unpacked)
+---
 
-1. Open `chrome://extensions` in Chrome, Edge, Brave or any Chromium browser.
-2. Enable **Developer mode** (top‑right).
-3. Click **Load unpacked** and select the `extension/` folder.
-4. Open a new tab. 🌌
+## How to Install (Load Unpacked)
 
-To package for the Web Store: zip the **contents** of `extension/` (so
-`manifest.json` is at the archive root).
+Because this isn't in the Chrome Web Store (I will NOT support Google in any way!), you can load it manually in under a minute:
 
-## Privacy & permissions
+1. Download or clone this repository to your machine.
+2. Open `chrome://extensions` in any Chromium-based browser (Chrome, Brave, Edge, Vivaldi).
+3. Toggle **Developer mode** (top-right corner).
+4. Click **Load unpacked** (top-left) and select the `extension/` folder from this repo.
+5. Open a new tab.
+
+*(To package it yourself for store upload, just zip the contents of the `extension/` folder, ensuring `manifest.json` is at the root of the zip archive).*
+
+---
+
+## Privacy & Permissions
+
+Here is exactly why the extension requests the permissions it does:
 
 | Permission | Why |
-| --- | --- |
-| `storage` | Save your settings, favorites and last image (locally). |
-| `favicon` | Render shortcut icons from Chrome's local cache — no external favicon service. |
-| `geolocation` *(optional)* | Only if you enable sun times, and only requested on demand. Coordinates stay on‑device. |
-| `topSites` *(optional)* | Only if you enable the shortcuts row. |
-| host permissions | Fetch images from the space‑agency domains listed in `manifest.json`. |
+| :--- | :--- |
+| `storage` | To save your settings, favorite images, and history locally on your machine. |
+| `favicon` | Grabs website shortcut icons from Chrome's local cache so we don't have to use a third-party tracking service. |
+| `geolocation` *(optional)* | Only requested if you enable Sun/Golden Hour times. Your coordinates never leave your machine. |
+| `topSites` *(optional)* | Only requested if you decide to enable the top-visited sites shortcut row. |
+| Host permissions | Necessary to bypass CORS policies and fetch images directly from official space agency domains. |
 
-## Architecture
+---
+
+## Codebase Architecture
+
+If you want to modify this or contribute, the codebase is written in vanilla JS with ES modules. There are no heavy frameworks, bundlers, or build steps—which makes it load instantly.
 
 ```
 extension/
 ├── manifest.json          MV3 manifest
-├── background.js          tiny service worker (open tab + first‑run flag)
-├── newtab.html            new‑tab shell
-├── assets/fonts/          Quicksand, bundled (no Google Fonts request)
+├── background.js          Tiny service worker (handles open tabs + first run)
+├── newtab.html            The main entry page
+├── assets/fonts/          Quicksand font files (bundled locally, no Google Font requests)
 ├── icons/
 └── src/
     ├── css/styles.css
     └── js/
-        ├── main.js            orchestrator: pool, rotation, preloading, shortcuts
-        ├── state.js           settings + favorites + history (single source of truth)
-        ├── providers/         one module per image source + registry/pool builder
-        ├── ui/                clock, search, widgets, info panel, top sites, settings
-        ├── features/          astro (moon/sun/sidereal), on‑this‑day, starfield
-        └── util/              storage cache, RSS parser, DOM helpers
+        ├── main.js            Orchestrator (handles image pooling, rotation, and hotkeys)
+        ├── state.js           The single source of truth for settings, history, and favorites
+        ├── providers/         Modules for fetching/parsing each agency's API feed
+        ├── ui/                UI components (clock, search, widgets, slide-out panels)
+        ├── features/          Astro math (moon, sun, sidereal), starfield background
+        └── util/              Local storage helpers, RSS parsers, and DOM tools
 ```
 
-Adding a source is one small module exporting `fetchList()` that returns
-normalized image objects, register it in `src/js/providers/index.js`.
+**Adding a new image source:**
+Just create a new file in `src/js/providers/` that exports a `fetchList()` function returning normalized image objects, then register it in `src/js/providers/index.js`.
 
-## Licence & credits
+---
 
-Imagery belongs to its creators and is subject to each agency's terms:
-NASA (public domain, with credit), ESA/Hubble & ESA/Webb & ESO (CC BY 4.0).
+## Credits
 
-**Not** affiliated with NASA, ESA, ESO, or the original Spatium.
+This is a personal hobby project and is **not** affiliated with NASA, ESA, ESO, or the original creators of the Spatium extension.
