@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>New Tab · Parsec</title>
+  <link rel="preload" href="assets/fonts/quicksand-latin.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="stylesheet" href="src/css/styles.css" />
+  <link rel="stylesheet" href="src/css/intro.css" />
+</head>
+<body>
+  <!-- background image crossfade layers -->
+  <div id="bg-a" class="bg"></div>
+  <div id="bg-b" class="bg"></div>
+  <canvas id="starfield" class="starfield"></canvas>
+  <div class="scrim"></div>
+  <div class="vignette"></div>
+  <div id="loader" class="loader" aria-hidden="true"><span></span></div>
+
+  <main class="app">
+    <section class="stage">
+      <div id="clock" class="clock"></div>
+      <div id="greeting"></div>
+      <div id="search" class="search"></div>
+      <nav id="topsites" class="topsites"></nav>
+    </section>
+
+    <aside id="widgets" class="widgets" aria-label="Space widgets"></aside>
+
+    <footer class="dock">
+      <div id="infobar" class="infobar"></div>
+      <div id="controls" class="controls" aria-label="Image controls"></div>
+    </footer>
+  </main>
+
+  <div id="overlay" class="overlay-root"></div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script type="module" src="src/js/main.js"></script>
+</body>
+</html>

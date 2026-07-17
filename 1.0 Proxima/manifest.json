@@ -1,0 +1,47 @@
+{
+  "manifest_version": 3,
+  "name": "Parsec a new Cosmos in every new Tab",
+  "short_name": "Parsec",
+  "version": "1.0.0",
+  "description": "A gorgeous, private, open-source new tab. Daily space imagery from NASA, Hubble, James Webb, ESO & more. Modern and FOSS.",
+  "author": "Parsec contributors",
+  "homepage_url": "https://github.com/professorquantumuniverse/parsec",
+  "chrome_url_overrides": {
+    "newtab": "newtab.html"
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "Open a new Parsec tab"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png",
+    "256": "icons/icon256.png"
+  },
+  "permissions": [
+    "storage",
+    "favicon"
+  ],
+  "optional_permissions": [
+    "topSites"
+  ],
+  "host_permissions": [
+    "https://api.nasa.gov/*",
+    "https://apod.nasa.gov/*",
+    "https://esahubble.org/*",
+    "https://cdn.esahubble.org/*",
+    "https://esawebb.org/*",
+    "https://cdn.esawebb.org/*",
+    "https://www.eso.org/*",
+    "https://cdn.eso.org/*",
+    "https://epic.gsfc.nasa.gov/*",
+    "https://images-api.nasa.gov/*",
+    "https://images-assets.nasa.gov/*",
+    "https://www.nasa.gov/*"
+  ]
+}
