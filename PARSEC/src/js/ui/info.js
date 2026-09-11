@@ -3,6 +3,7 @@
 
 import { el, clear, icons } from "../util/dom.js";
 import { BRAND } from "../brand.js";
+import { hasStations } from "../features/stations.js";
 
 export function initInfo({ bar, controls, overlayRoot, handlers }) {
   let current = null;
@@ -20,14 +21,18 @@ export function initInfo({ bar, controls, overlayRoot, handlers }) {
     fav: favBtn,
     download: btn("download", "Download HD", "D"),
     info: btn("info", "Details", "I"),
+    ground: btn("grid", "Ground Control", "G"),
     settings: btn("gear", "Settings", "S"),
   };
+  // Only earns its place in the dock once there is a homelab behind it.
+  buttons.ground.style.display = "none";
   buttons.prev.addEventListener("click", () => handlers.onPrev());
   buttons.next.addEventListener("click", () => handlers.onNext());
   buttons.shuffle.addEventListener("click", () => handlers.onShuffle());
   buttons.fav.addEventListener("click", () => handlers.onToggleFav());
   buttons.download.addEventListener("click", () => handlers.onDownload());
   buttons.info.addEventListener("click", () => toggleDetail());
+  buttons.ground.addEventListener("click", () => handlers.onGroundControl?.());
   buttons.settings.addEventListener("click", () => handlers.onSettings());
   clear(controls).append(...Object.values(buttons));
 
@@ -102,6 +107,9 @@ export function initInfo({ bar, controls, overlayRoot, handlers }) {
     setFav,
     toggleDetail,
     isDetailOpen: () => !modal.hasAttribute("hidden"),
-    update() { bar.style.display = ""; },
+    update(settings = {}) {
+      bar.style.display = "";
+      buttons.ground.style.display = settings.gcEnabled !== false && hasStations() ? "" : "none";
+    },
   };
 }

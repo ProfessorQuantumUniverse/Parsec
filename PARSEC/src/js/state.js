@@ -3,6 +3,7 @@
 
 import { storageGet, storageSet } from "./util/cache.js";
 import { BRAND } from "./brand.js";
+import { getStations, replaceAll } from "./features/stations.js";
 
 const SETTINGS_KEY = `${BRAND.ns}_settings_v1`;
 const FAV_KEY = `${BRAND.ns}_favorites`;
@@ -39,6 +40,25 @@ export const DEFAULTS = {
   showDate: true,
   // search
   searchEngine: "duckduckgo",
+  // Ground Control — your homelab. Invisible until you add a station.
+  gcEnabled: true,
+  gcPaletteStations: true, // homelab hits in the search field
+  gcPaletteCommands: true, // ">" commands in the search field
+  gcLayout: "sectors", // sectors | grid | list
+  gcDensity: "normal", // compact | normal | detail
+  gcColumns: 0, // 0 = fit to width
+  gcShowHost: true,
+  gcShowIp: true,
+  gcShowNote: true,
+  gcShowTags: false,
+  gcShowSectorTitles: true,
+  gcPinnedRow: true,
+  gcDim: 0.55, // how much of the picture the overlay keeps
+  gcIcons: true, // use fetched favicons (falls back to monograms)
+  gcHealth: "off", // off | onopen | interval
+  gcHealthInterval: 60, // seconds, only for "interval"
+  gcHealthTimeout: 2000, // ms per probe
+  gcAwayDetect: true,
   // location (for sun times) — manual or detected
   location: null, // { lat, lon, label }
   // NASA API key (optional, bring-your-own)
@@ -145,6 +165,7 @@ export async function exportConfig() {
     version: 1,
     settings: _settings,
     favorites: await getFavorites(),
+    stations: getStations(),
   };
 }
 
@@ -152,4 +173,5 @@ export async function importConfig(obj) {
   if (!obj || (obj.app !== BRAND.ns && obj.app !== "spatium")) throw new Error(`Not a ${BRAND.name} config file.`);
   if (obj.settings) await updateSettings({ ...DEFAULTS, ...obj.settings });
   if (Array.isArray(obj.favorites)) await storageSet({ [FAV_KEY]: obj.favorites.slice(0, 300) });
+  if (Array.isArray(obj.stations)) await replaceAll(obj.stations);
 }

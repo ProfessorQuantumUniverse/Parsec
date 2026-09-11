@@ -11,7 +11,7 @@ export function initSearch(container) {
     spellcheck: false,
     "aria-label": "Search the web",
   });
-  const form = el("form", { class: "search-form" }, [
+  const form = el("form", { class: "search-form", role: "search" }, [
     el("span", { class: "search-icon", html:
       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3" stroke-linecap="round"/></svg>' }),
     input,
@@ -39,5 +39,7 @@ export function initSearch(container) {
       input.placeholder = `Search with ${SEARCH_ENGINES[engine].label}…`;
     },
     focus() { input.focus(); },
+    // The jump palette hangs off these.
+    input, form, mount: container,
   };
 }

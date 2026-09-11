@@ -42,7 +42,7 @@ function slider(key, min, max, step, get, set, fmt) {
   return el("div", { class: "slider-wrap" }, [input, val]);
 }
 
-export function initSettings(overlayRoot, { onSourcesChanged, onSelectImage, requestPerm, replayIntro }) {
+export function initSettings(overlayRoot, { onSourcesChanged, onSelectImage, requestPerm, replayIntro, openGroundControl }) {
   let activeTab = "sources";
   const panel = el("aside", { class: "settings-panel", hidden: true });
   const backdrop = el("div", { class: "settings-backdrop", hidden: true, onclick: () => close() });
@@ -150,6 +150,13 @@ export function initSettings(overlayRoot, { onSourcesChanged, onSelectImage, req
         : toggle(k, get, set);
       body.append(row(label, control));
     }
+    body.append(el("hr", { class: "set-divider" }));
+    body.append(row(
+      "Ground Control",
+      el("button", { class: "btn", type: "button", text: "Configure…",
+        onclick: () => { close(); openGroundControl?.(); } }),
+      "Your homelab. Jump to any service from the search field, or press G for the full board."
+    ));
     body.append(el("hr", { class: "set-divider" }));
     body.append(row("24-hour clock", toggle("clock24h", get, set)));
     body.append(row("Show seconds", toggle("showSeconds", get, set)));

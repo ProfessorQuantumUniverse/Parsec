@@ -47,6 +47,19 @@ I wanted a few handy astronomical tools on my screen, so I built them to run ent
 
 ---
 
+## Ground Control (for homelabs)
+
+If you run things at home, you know the problem: you remember that Proxmox is *somewhere* on port 8006, but not whether it answers to a hostname, an IP, or both. Ground Control puts all of that one keystroke away — and stays completely invisible until you add your first service, so the picture is still the picture.
+
+* **Jump from the search field.** Start typing and your own services rank above the web search. Names, hostnames, IPs, sectors and tags all match — and so do **port numbers**, so typing `8123` lands on Home Assistant. `Ctrl`+`K` opens it from anywhere, `>` lists Parsec's own commands instead.
+* **The full board.** `G` opens a Heimdall-style overlay over the wallpaper: your services grouped into sectors, with as much or as little detail as you want. Escape closes it.
+* **Hostname *and* IP, together.** Every card can show the friendly name and the raw `192.168.1.50:8123` underneath, so the panel doubles as the list of addresses you keep forgetting. Click an IP to copy it; `Alt`+click opens a service through its IP when DNS is having a day.
+* **Icons that survive being away.** Parsec can ask each service you added for its favicon, shrink it to 64 px and keep it locally. Only hosts you typed in yourself are ever contacted, it needs a permission you grant explicitly, and rendering always comes from the cache — so the board looks identical on hotel wifi.
+* **Optional reachability dots.** Off by default. When nothing at all answers, Parsec says "you're probably not on your network" instead of turning every dot red.
+* **Getting your stuff in.** Paste an address and press Enter — common ports fill in the label and sector for you. Or paste a whole list at once, or import a Heimdall or Homarr export.
+
+---
+
 ## Customization
 
 You can adjust almost everything in the settings panel:
@@ -66,7 +79,10 @@ You can adjust almost everything in the settings panel:
 | `R` | Shuffle random image | `S` or `,` | Open settings |
 | `F` | Add to favorites | `/` | Focus search bar |
 | `H` | Toggle Zen mode | `?` | Show shortcut list |
+| `G` | Open Ground Control | `Ctrl`+`K` | Jump to one of your services |
 | `Esc` | Close panels | | |
+
+Inside Ground Control: type to filter, arrow keys to move, `Enter` to open, `Alt`+`Enter` to go via the IP, `Alt`+`1…9` to jump straight to a card.
 
 ---
 
@@ -95,6 +111,7 @@ Here is exactly why the extension requests the permissions it does:
 | `geolocation` *(optional)* | Only requested if you enable Sun/Golden Hour times. Your coordinates never leave your machine. |
 | `topSites` *(optional)* | Only requested if you decide to enable the top-visited sites shortcut row. |
 | Host permissions | Necessary to bypass CORS policies and fetch images directly from official space agency domains. |
+| Host permissions *(optional)* | Only requested when you ask Ground Control to fetch icons for your own services. Parsec then contacts **only the hosts you typed in yourself** — never a third-party favicon service — caches what it finds locally, and renders from that cache from then on. You can revoke it at any time and keep the icons you already have. |
 
 ---
 
@@ -111,12 +128,13 @@ PARSEC/
 ├── icons/
 └── src/
     ├── css/styles.css
+    ├── css/groundcontrol.css  Palette, overlay and homelab panel styles
     └── js/
         ├── main.js            Orchestrator (handles image pooling, rotation, and hotkeys)
         ├── state.js           The single source of truth for settings, history, and favorites
         ├── providers/         Modules for fetching/parsing each agency's API feed
-        ├── ui/                UI components (clock, search, widgets, slide-out panels)
-        ├── features/          Astro math (moon, sun, sidereal), starfield background
+        ├── ui/                UI components (clock, search, palette, widgets, slide-out panels)
+        ├── features/          Astro math (moon, sun, sidereal), starfield, homelab stations
         └── util/              Local storage helpers, RSS parsers, and DOM tools
 ```
 

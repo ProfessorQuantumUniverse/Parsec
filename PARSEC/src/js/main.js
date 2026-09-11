@@ -14,7 +14,13 @@ import { initWidgets } from "./ui/widgets.js";
 import { initInfo } from "./ui/info.js";
 import { initTopSites } from "./ui/topsites.js";
 import { initSettings } from "./ui/settings.js";
+import { initPalette } from "./ui/palette.js";
+import { initGroundControl } from "./ui/groundcontrol.js";
+import { initStationsPanel } from "./ui/stations-panel.js";
 import { createStarfield } from "./features/starfield.js";
+import { createHealth } from "./features/health.js";
+import { loadStations, onStationsChange, recordOpen, ipUrl } from "./features/stations.js";
+import { primeIconCache } from "./features/favicons.js";
 import { runOnboarding } from "./ui/onboarding.js";
 
 const POOL_KEY = "pool";
@@ -176,6 +182,7 @@ async function refreshPool({ force = false } = {}) {
 function applyPresentation(s) {
   const root = document.documentElement;
   root.style.setProperty("--accent", s.accent);
+  root.style.setProperty("--gc-dim", String(s.gcDim ?? 0.55));
   root.dataset.theme = s.theme || "cosmos";
   els.scrim.style.opacity = String(s.dim);
   const blur = s.blur ? `blur(${s.blur}px) saturate(1.05)` : "none";
@@ -246,6 +253,7 @@ function shortcutsHelp() {
   const rows = [
     ["→ / N / Space", "Next image"], ["← / P", "Previous image"], ["R", "Shuffle"],
     ["F", "Favorite"], ["I", "Image details"], ["D", "Download HD"],
+    ["G", "Ground Control"], ["Ctrl + K", "Jump to a service"],
     ["S / ,", "Settings"], ["/", "Focus search"], ["H", "Zen mode (hide UI)"], ["Esc", "Close / exit"],
   ];
   const box = el("div", { class: "help-overlay", onclick: (e) => { if (e.target === box) box.remove(); } }, [
@@ -266,7 +274,17 @@ function isTyping(e) {
 
 function onKey(e) {
   if (onboardingActive) return;
+
+  // Reaches the palette from anywhere, including inside the search field.
+  if ((e.ctrlKey || e.metaKey) && (e.key === "k" || e.key === "K")) {
+    e.preventDefault();
+    if (!palette.open()) toast("Nothing to jump to yet — add your services under Ground Control.");
+    return;
+  }
+
   if (e.key === "Escape") {
+    if (stationsPanel.isOpen()) return stationsPanel.close();
+    if (groundControl.isOpen()) return groundControl.close();
     if (settings.isOpen()) return settings.close();
     if (info.isDetailOpen()) return info.toggleDetail(false);
     const help = $(".help-overlay"); if (help) return help.remove();
@@ -282,11 +300,39 @@ function onKey(e) {
     case "i": info.toggleDetail(); break;
     case "d": download(); break;
     case "s": case ",": settings.toggle(); break;
+    case "g": groundControl.toggle(); break;
     case "/": e.preventDefault(); search.focus(); break;
     case "h": setZen(!zen); break;
     case "?": shortcutsHelp(); break;
   }
 }
+
+/* ---------- ground control ---------- */
+
+/** Open one of your own services. Alt goes via the raw IP, Ctrl opens a tab. */
+async function openStation(st, { newTab = false, viaIp = false } = {}) {
+  const url = (viaIp && ipUrl(st)) || st.url;
+  await recordOpen(st.id);
+  if (newTab) window.open(url, "_blank", "noopener");
+  else location.href = url;
+}
+
+/* Actions the palette offers behind ">" — the half of it that is useful
+ * whether or not you run anything at home. */
+const PALETTE_COMMANDS = [
+  { id: "ground", label: "Open Ground Control", hint: "your homelab board", key: "G", icon: "grid",
+    keywords: ["homelab", "dashboard", "stations", "services"], run: () => groundControl.open() },
+  { id: "next", label: "Next image", key: "N", icon: "next", keywords: ["image", "advance"], run: () => next() },
+  { id: "prev", label: "Previous image", key: "P", icon: "prev", keywords: ["image", "back"], run: () => prev() },
+  { id: "shuffle", label: "Shuffle the cosmos", key: "R", icon: "shuffle", keywords: ["random"], run: () => shuffle() },
+  { id: "fav", label: "Favorite this image", key: "F", icon: "heart", keywords: ["like", "save"], run: () => favorite() },
+  { id: "details", label: "Image details", key: "I", icon: "info", keywords: ["about", "caption"], run: () => info.toggleDetail(true) },
+  { id: "download", label: "Download full resolution", key: "D", icon: "download", keywords: ["save", "wallpaper"], run: () => download() },
+  { id: "zen", label: "Zen mode", key: "H", icon: "eye", keywords: ["hide", "clean"], run: () => setZen(!zen) },
+  { id: "settings", label: "Settings", key: "S", icon: "gear", keywords: ["options", "preferences"], run: () => settings.open() },
+  { id: "stations", label: "Configure Ground Control", icon: "grid",
+    keywords: ["add station", "homelab settings", "edit"], run: () => stationsPanel.open() },
+];
 
 /* ---------- module wiring ---------- */
 
@@ -294,14 +340,33 @@ const clock = initClock(els.clock);
 const search = initSearch(els.search);
 const widgets = initWidgets(els.widgets);
 const topsites = initTopSites(els.topsites);
+const health = createHealth();
+const palette = initPalette({
+  mount: search.mount, input: search.input, form: search.form,
+  commands: PALETTE_COMMANDS,
+  onOpenStation: openStation,
+});
 const info = initInfo({
   bar: els.infobar, controls: els.controls, overlayRoot: els.overlay,
   handlers: {
     onPrev: prev, onNext: next, onShuffle: shuffle,
-    onToggleFav: favorite, onDownload: download, onSettings: () => settings.toggle(),
+    onToggleFav: favorite, onDownload: download,
+    onGroundControl: () => groundControl.toggle(),
+    onSettings: () => settings.toggle(),
   },
 });
+const groundControl = initGroundControl(els.overlay, {
+  health,
+  onConfigure: () => stationsPanel.open(),
+  onOpenStation: openStation,
+  onToast: toast,
+});
+const stationsPanel = initStationsPanel(els.overlay, {
+  onChanged: () => applyAllWidgets(getSettings()),
+  onToast: toast,
+});
 const settings = initSettings(els.overlay, {
+  openGroundControl: () => stationsPanel.open(),
   onSourcesChanged: async () => { await refreshPool({ force: true }); await showAt(0); toast("Sources updated."); },
   onSelectImage: async (image) => {
     const found = pool.findIndex((x) => x.id === image.id);
@@ -314,6 +379,7 @@ const settings = initSettings(els.overlay, {
 
 function applyAllWidgets(s) {
   clock.update(s); search.update(s); widgets.update(s); topsites.update(s); info.update(s);
+  palette.update(s); groundControl.update(s);
 }
 
 function applyAll(s) { applyPresentation(s); applyAllWidgets(s); }
@@ -336,7 +402,7 @@ async function runIntro() {
 /* ---------- boot ---------- */
 
 async function boot() {
-  const s = await loadSettings();
+  const [s] = await Promise.all([loadSettings(), loadStations(), primeIconCache()]);
   applyAll(s);
 
   if (!s.onboarded) {
@@ -364,5 +430,6 @@ async function boot() {
 }
 
 onSettingsChange((s) => applyAll(s));
+onStationsChange(() => applyAllWidgets(getSettings()));
 addEventListener("keydown", onKey);
 boot();

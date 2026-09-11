@@ -30,6 +30,9 @@
   "optional_permissions": [
     "topSites"
   ],
+  "optional_host_permissions": [
+    "*://*/*"
+  ],
   "host_permissions": [
     "https://api.nasa.gov/*",
     "https://apod.nasa.gov/*",
