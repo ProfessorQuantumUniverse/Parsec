@@ -185,6 +185,21 @@
   font-size: 10.5px; color: var(--muted);
   border: 1.5px solid var(--line); border-radius: 5px 1px; padding: 1px 6px;
 }
+.gc-sector-open {
+  display: inline-flex; align-items: center; gap: 5px;
+  margin-left: 2px; padding: 3px 9px;
+  background: none; color: var(--muted);
+  border: 1.5px solid var(--line); border-radius: 6px 2px;
+  font-family: inherit; font-size: 10px; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 0.8px;
+  cursor: pointer;
+  opacity: 0; transform: translateX(-4px);
+  transition: opacity 160ms ease, transform 160ms var(--ease), color 160ms ease, border-color 160ms ease;
+}
+.gc-sector-open svg { width: 12px; height: 12px; }
+.gc-section:hover .gc-sector-open,
+.gc-sector-open:focus-visible { opacity: 1; transform: translateX(0); }
+.gc-sector-open:hover { color: var(--accent); border-color: var(--accent); }
 
 .gc-grid {
   display: grid;

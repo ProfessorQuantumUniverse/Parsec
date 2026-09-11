@@ -10,7 +10,7 @@ import { el, clear, icons } from "../util/dom.js";
 import { getSettings } from "../state.js";
 import {
   getStations, sectorsOf, searchStations, hostLabel, ipLabel, ipUrl,
-  hasHostname, monogram, reorderStations, updateStation, frecency,
+  hasHostname, monogram, reorderStations, updateStation, frecency, recordOpens,
 } from "../features/stations.js";
 import { iconFor, backfillIcons } from "../features/favicons.js";
 
@@ -193,7 +193,19 @@ export function initGroundControl(overlayRoot, { health, onConfigure, onOpenStat
 
   /* ---------- sections ---------- */
 
-  function sectionEl(title, stations, extraClass = "") {
+  /** Open a whole sector in background tabs — the "maintenance evening" button. */
+  async function openSector(name, stations) {
+    if (stations.length > 8 && !confirm(`Open all ${stations.length} services in ${name}?`)) return;
+    for (const st of stations) {
+      if (chrome?.tabs?.create) chrome.tabs.create({ url: st.url, active: false });
+      else window.open(st.url, "_blank", "noopener");
+    }
+    await recordOpens(stations.map((s) => s.id));
+    onToast?.(`Opened ${stations.length} tab${stations.length === 1 ? "" : "s"} from ${name}.`);
+    close();
+  }
+
+  function sectionEl(title, stations, extraClass = "", { openable = false } = {}) {
     const grid = el("div", { class: `gc-grid ${settings.gcLayout === "list" ? "as-list" : ""} ${extraClass}` });
     if (settings.gcColumns > 0 && settings.gcLayout !== "list") {
       grid.style.gridTemplateColumns = `repeat(${settings.gcColumns}, minmax(0, 1fr))`;
@@ -208,6 +220,14 @@ export function initGroundControl(overlayRoot, { health, onConfigure, onOpenStat
       parts.push(el("h3", { class: "gc-sector-title" }, [
         el("span", { text: title }),
         el("span", { class: "gc-sector-count", text: String(stations.length) }),
+        openable && stations.length > 1
+          ? el("button", {
+              class: "gc-sector-open", type: "button",
+              title: `Open all ${stations.length} in ${title}`,
+              html: `${icons.external}<span>Open all</span>`,
+              onclick: () => openSector(title, stations),
+            })
+          : null,
       ]));
     }
     parts.push(grid);
@@ -265,7 +285,9 @@ export function initGroundControl(overlayRoot, { health, onConfigure, onOpenStat
         }
       }
       if (settings.gcLayout === "sectors") {
-        for (const sector of sectorsOf(all)) body.append(sectionEl(sector.name, sector.items));
+        for (const sector of sectorsOf(all)) {
+          body.append(sectionEl(sector.name, sector.items, "", { openable: true }));
+        }
       } else {
         body.append(sectionEl("", [...all].sort((a, b) => a.order - b.order), "flat"));
       }

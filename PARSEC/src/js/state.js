@@ -59,6 +59,7 @@ export const DEFAULTS = {
   gcHealthInterval: 60, // seconds, only for "interval"
   gcHealthTimeout: 2000, // ms per probe
   gcAwayDetect: true,
+  gcSync: false, // mirror the station list through the browser's own sync
   // location (for sun times) — manual or detected
   location: null, // { lat, lon, label }
   // NASA API key (optional, bring-your-own)

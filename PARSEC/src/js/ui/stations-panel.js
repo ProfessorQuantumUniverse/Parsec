@@ -55,7 +55,7 @@ function slider(key, min, max, step, get, set, fmt) {
   return el("div", { class: "slider-wrap" }, [input, val]);
 }
 
-export function initStationsPanel(overlayRoot, { onChanged, onToast }) {
+export function initStationsPanel(overlayRoot, { onChanged, onToast, sync }) {
   let activeTab = "stations";
   let editing = null;   // station id whose editor is expanded
   let focusAdd = false; // put the caret back in the add field after a redraw
@@ -432,6 +432,77 @@ export function initStationsPanel(overlayRoot, { onChanged, onToast }) {
 
   /* ---------- data tab ---------- */
 
+  async function renderSync(body) {
+    const status = (await sync?.status?.()) || { available: false };
+
+    body.append(el("h3", { class: "fav-subhead", text: "Sync across browsers" }));
+    if (!status.available) {
+      body.append(el("p", { class: "set-section-hint", text:
+        "This browser doesn't offer sync storage, so the list stays on this machine." }));
+      return;
+    }
+
+    body.append(el("p", { class: "set-section-hint", text:
+      "Carries your stations to every browser you are signed into, through the browser's own sync — " +
+      "no Parsec account and no server of ours. Icons stay local on each machine: they are a few kilobytes each " +
+      "and every device can fetch its own from the same network anyway." }));
+
+    const on = get().gcSync === true;
+    const syncSwitch = el("input", { type: "checkbox", checked: on });
+    syncSwitch.addEventListener("change", async () => {
+      await set({ gcSync: syncSwitch.checked });
+      setTimeout(rerender, 700); // let the first reconcile finish before reporting
+    });
+    body.append(row("Sync my stations",
+      el("span", { class: "switch" }, [syncSwitch, el("span", { class: "switch-track" })]),
+      "Off keeps everything on this machine only."));
+
+    if (on) {
+      const when = status.updatedAt
+        ? new Date(status.updatedAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })
+        : "never";
+      const pct = Math.round((status.bytes / status.budget) * 100);
+      body.append(el("div", { class: "gc-perm" + (status.error ? "" : " on") }, [
+        el("span", { class: "gc-perm-dot" }),
+        el("span", { text: status.error
+          || (status.remoteCount
+            ? `${status.remoteCount} stations in sync · last written ${when}`
+            : "Nothing sent yet — it will go up in a moment.") }),
+      ]));
+
+      body.append(el("div", { class: "btn-row wrap" }, [
+        el("button", { class: "btn", text: "Send mine now", onclick: async () => {
+          notify("Sending…");
+          const ok = await sync.pushNow();
+          rerender();
+          if (ok) notify("Stations sent to sync.");
+        } }),
+        el("button", { class: "btn", text: "Take the synced list", onclick: async () => {
+          if (!confirm("Replace the stations on this machine with the synced list?")) return;
+          const ok = await sync.pullNow();
+          onChanged?.();
+          rerender();
+          notify(ok ? "Synced list applied." : "Nothing to take yet.");
+        } }),
+        el("button", { class: "btn danger", text: "Clear synced copy", onclick: async () => {
+          if (!confirm("Remove the station list from sync storage? The list on this machine is kept.")) return;
+          await sync.clearRemote();
+          rerender();
+          notify("Synced copy cleared.");
+        } }),
+      ]));
+
+      if (status.bytes) {
+        body.append(el("p", { class: "set-section-hint", text:
+          `About ${Math.round(status.bytes / 1024 * 10) / 10} KB of the sync budget used (${pct}%).` }));
+      }
+      body.append(el("p", { class: "set-section-hint", text:
+        "If two machines change the list at once, the later change wins — this is a list, not a database." }));
+    }
+
+    body.append(el("hr", { class: "set-divider" }));
+  }
+
   function renderData(body) {
     body.append(el("h3", { class: "fav-subhead", text: "Add many at once" }));
     body.append(el("p", { class: "set-section-hint", text:
@@ -506,7 +577,7 @@ export function initStationsPanel(overlayRoot, { onChanged, onToast }) {
     else if (activeTab === "look") renderLook(body);
     else if (activeTab === "icons") await renderIcons(body);
     else if (activeTab === "status") renderStatus(body);
-    else if (activeTab === "data") renderData(body);
+    else if (activeTab === "data") { await renderSync(body); renderData(body); }
     return body;
   }
 

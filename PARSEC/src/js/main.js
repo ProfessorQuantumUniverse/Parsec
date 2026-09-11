@@ -19,6 +19,7 @@ import { initGroundControl } from "./ui/groundcontrol.js";
 import { initStationsPanel } from "./ui/stations-panel.js";
 import { createStarfield } from "./features/starfield.js";
 import { createHealth } from "./features/health.js";
+import { createSync } from "./features/sync.js";
 import { loadStations, onStationsChange, recordOpen, ipUrl } from "./features/stations.js";
 import { primeIconCache } from "./features/favicons.js";
 import { runOnboarding } from "./ui/onboarding.js";
@@ -341,6 +342,10 @@ const search = initSearch(els.search);
 const widgets = initWidgets(els.widgets);
 const topsites = initTopSites(els.topsites);
 const health = createHealth();
+const sync = createSync({
+  onNote: (msg) => toast(msg),
+  onAdopt: () => applyAllWidgets(getSettings()),
+});
 const palette = initPalette({
   mount: search.mount, input: search.input, form: search.form,
   commands: PALETTE_COMMANDS,
@@ -364,6 +369,7 @@ const groundControl = initGroundControl(els.overlay, {
 const stationsPanel = initStationsPanel(els.overlay, {
   onChanged: () => applyAllWidgets(getSettings()),
   onToast: toast,
+  sync,
 });
 const settings = initSettings(els.overlay, {
   openGroundControl: () => stationsPanel.open(),
@@ -379,7 +385,7 @@ const settings = initSettings(els.overlay, {
 
 function applyAllWidgets(s) {
   clock.update(s); search.update(s); widgets.update(s); topsites.update(s); info.update(s);
-  palette.update(s); groundControl.update(s);
+  palette.update(s); groundControl.update(s); sync.update(s);
 }
 
 function applyAll(s) { applyPresentation(s); applyAllWidgets(s); }
@@ -401,6 +407,15 @@ async function runIntro() {
 
 /* ---------- boot ---------- */
 
+/** The toolbar popup links here with #ground or #stations. */
+function openFromHash() {
+  const where = location.hash.replace("#", "").toLowerCase();
+  if (where === "ground") groundControl.open();
+  else if (where === "stations") stationsPanel.open();
+  else return;
+  history.replaceState(null, "", location.pathname); // a reload shouldn't reopen it
+}
+
 async function boot() {
   const [s] = await Promise.all([loadSettings(), loadStations(), primeIconCache()]);
   applyAll(s);
@@ -409,6 +424,8 @@ async function boot() {
     await runIntro();
     return;
   }
+
+  openFromHash();
 
   // 1) Instant paint from last cached image (offline-friendly, zero network wait)
   const stored = (await storageGet(CURRENT_KEY))[CURRENT_KEY];
@@ -430,6 +447,9 @@ async function boot() {
 }
 
 onSettingsChange((s) => applyAll(s));
-onStationsChange(() => applyAllWidgets(getSettings()));
+onStationsChange(() => {
+  applyAllWidgets(getSettings());
+  sync.notifyLocalChange();
+});
 addEventListener("keydown", onKey);
 boot();

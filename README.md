@@ -9,7 +9,7 @@ This is a ground-up, open-source rewrite inspired by the original "Spatium" exte
 ## The Ground Rules
 
 * **No tracking, ever.** No telemetry, no third-party scripts, no analytics.
-* **No logins or cloud sync.** Everything is saved locally in your browser.
+* **No logins, no accounts.** Everything is saved locally in your browser. The one optional exception is the homelab station list, which can ride along on your browser's own sync — still never a server of ours.
 * **Direct connections.** The extension only talks directly to the public APIs of the space agencies you enable. No middleman servers.
 
 ---
@@ -57,6 +57,9 @@ If you run things at home, you know the problem: you remember that Proxmox is *s
 * **Icons that survive being away.** Parsec can ask each service you added for its favicon, shrink it to 64 px and keep it locally. Only hosts you typed in yourself are ever contacted, it needs a permission you grant explicitly, and rendering always comes from the cache — so the board looks identical on hotel wifi.
 * **Optional reachability dots.** Off by default. When nothing at all answers, Parsec says "you're probably not on your network" instead of turning every dot red.
 * **Getting your stuff in.** Paste an address and press Enter — common ports fill in the label and sector for you. Or paste a whole list at once, or import a Heimdall or Homarr export.
+* **Add the page you are on.** Set a service up, click the Parsec button in the toolbar, and it is saved — label and sector pre-filled from the page itself. This is how the list actually stays current instead of decaying. It reads the active tab only at the moment you click, and since the service is demonstrably up right then, that is also when its icon gets fetched.
+* **Open a whole sector.** Hover a sector heading and *Open all* puts every service in it into background tabs. Unreasonably satisfying on a maintenance evening.
+* **Sync, if you want it.** Optional, off by default: your station list rides along with the browser's own sync to every machine you are signed into — no Parsec account, no server of ours. Icons deliberately stay local, since each machine can fetch its own from the same network.
 
 ---
 
@@ -109,6 +112,7 @@ Here is exactly why the extension requests the permissions it does:
 | `storage` | To save your settings, favorite images, and history locally on your machine. |
 | `favicon` | Grabs website shortcut icons from Chrome's local cache so we don't have to use a third-party tracking service. |
 | `geolocation` *(optional)* | Only requested if you enable Sun/Golden Hour times. Your coordinates never leave your machine. |
+| `activeTab` | Lets the toolbar button read the address of the tab you are on — only in the moment you click it, and only that one tab. Nothing is read in the background. |
 | `topSites` *(optional)* | Only requested if you decide to enable the top-visited sites shortcut row. |
 | Host permissions | Necessary to bypass CORS policies and fetch images directly from official space agency domains. |
 | Host permissions *(optional)* | Only requested when you ask Ground Control to fetch icons for your own services. Parsec then contacts **only the hosts you typed in yourself** — never a third-party favicon service — caches what it finds locally, and renders from that cache from then on. You can revoke it at any time and keep the icons you already have. |
@@ -122,19 +126,21 @@ If you want to modify this or contribute, the codebase is written in vanilla JS 
 ```
 PARSEC/
 ├── manifest.json          MV3 manifest
-├── background.js          Tiny service worker (handles open tabs + first run)
+├── background.js          Tiny service worker (first run only)
 ├── newtab.html            The main entry page
+├── popup.html             Toolbar popup — adds the page you are on to Ground Control
 ├── assets/fonts/          Quicksand font files (bundled locally, no Google Font requests)
 ├── icons/
 └── src/
     ├── css/styles.css
     ├── css/groundcontrol.css  Palette, overlay and homelab panel styles
+    ├── css/popup.css         Toolbar popup styles
     └── js/
         ├── main.js            Orchestrator (handles image pooling, rotation, and hotkeys)
         ├── state.js           The single source of truth for settings, history, and favorites
         ├── providers/         Modules for fetching/parsing each agency's API feed
         ├── ui/                UI components (clock, search, palette, widgets, slide-out panels)
-        ├── features/          Astro math (moon, sun, sidereal), starfield, homelab stations
+        ├── features/          Astro math (moon, sun, sidereal), starfield, homelab stations, sync
         └── util/              Local storage helpers, RSS parsers, and DOM tools
 ```
 

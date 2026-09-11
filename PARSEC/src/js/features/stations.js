@@ -80,7 +80,8 @@ export function parseTarget(raw) {
 
   const cut = s.search(/[/?#]/);
   const hostport = cut >= 0 ? s.slice(0, cut) : s;
-  const path = cut >= 0 ? s.slice(cut) : "";
+  const rawPath = cut >= 0 ? s.slice(cut) : "";
+  const path = rawPath === "/" ? "" : rawPath; // so "host/" and "host" are one station
 
   let host = hostport;
   let port = null;
@@ -225,6 +226,28 @@ export async function loadStations() {
   return _stations;
 }
 
+/** Take a list that came from elsewhere — the toolbar popup, another window,
+ *  or a synced device — into memory without writing it back out again. */
+export function adoptStations(list) {
+  _stations = (list || []).map(normalizeStation);
+  _loaded = true;
+  _subs.forEach((fn) => fn(_stations));
+  return _stations;
+}
+
+/* An open new tab must not keep showing a stale list after the popup adds
+ * something. This fires in every context, including the one that wrote, so
+ * the comparison below is what stops it from chasing its own tail. */
+if (typeof chrome !== "undefined" && chrome.storage?.onChanged) {
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== "local" || !changes[STATIONS_KEY]) return;
+    const next = changes[STATIONS_KEY].newValue;
+    if (!Array.isArray(next)) return;
+    if (JSON.stringify(next) === JSON.stringify(_stations)) return;
+    adoptStations(next);
+  });
+}
+
 export function getStations() {
   return _stations;
 }
@@ -299,11 +322,21 @@ export async function reorderStations(ids) {
 
 /** Bump usage counters — drives the frecency ranking in the palette. */
 export async function recordOpen(id) {
-  const st = _stations.find((s) => s.id === id);
-  if (!st) return;
-  st.opens = (st.opens || 0) + 1;
-  st.lastOpened = Date.now();
-  await storageSet({ [STATIONS_KEY]: _stations });
+  return recordOpens([id]);
+}
+
+/** Same, for opening a whole sector at once: one write, not eight. */
+export async function recordOpens(ids) {
+  const now = Date.now();
+  let touched = false;
+  for (const id of ids) {
+    const st = _stations.find((s) => s.id === id);
+    if (!st) continue;
+    st.opens = (st.opens || 0) + 1;
+    st.lastOpened = now;
+    touched = true;
+  }
+  if (touched) await storageSet({ [STATIONS_KEY]: _stations });
 }
 
 /* ---------- sectors ---------- */
