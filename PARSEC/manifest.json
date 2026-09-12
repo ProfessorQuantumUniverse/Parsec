@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Parsec a new Cosmos in every new Tab",
   "short_name": "Parsec",
-  "version": "1.0.0",
+  "version": "2.1",
   "description": "A gorgeous, private, open-source new tab. Daily space imagery from NASA, Hubble, James Webb, ESO & more. Modern and FOSS.",
   "author": "Parsec contributors",
   "homepage_url": "https://github.com/professorquantumuniverse/parsec",
