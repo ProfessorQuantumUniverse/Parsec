@@ -157,4 +157,4 @@ Just create a new file in `src/js/providers/` that exports a `fetchList()` funct
 
 ## Credits
 
-This is a personal hobby project and is **not** affiliated with NASA, ESA, ESO, or the original creators of the Spatium extension.
+This is a personal hobby project and is **not** affiliated with NASA, ESA, ESO, or the other similar, commercial, extensions out there.
