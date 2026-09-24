@@ -2,6 +2,13 @@
 
 A clean, lightweight new tab page that loads high-res space photography from NASA, ESA, and other observatories every time you open a tab. No tracking, no accounts, and no bloat.
 
+<!-- INSTALL BUTTONS START -->
+<p align="center">
+  <a href="https://github.com/ProfessorQuantumUniverse/Parsec/releases/latest"><img src="https://img.shields.io/badge/Download-Chromium%20Extension-4285F4?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Download the extension" height="40"></a>
+  <a href="#how-to-install-load-unpacked"><img src="https://img.shields.io/badge/How%20to-install-555555?style=for-the-badge&logo=github&logoColor=white" alt="How to install" height="40"></a>
+</p>
+<!-- INSTALL BUTTONS END -->
+
 This is a ground-up, open-source rewrite inspired by the original "Spatium" extension. 
 
 ---
