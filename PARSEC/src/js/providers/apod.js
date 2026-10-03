@@ -58,8 +58,9 @@ function cleanExplanation(html) {
   return stripHtml(body).replace(/^Explanation:\s*/i, "");
 }
 
-function normalize(d) {
-  if (!d || d.media_type !== "image" || !d.hdurl || PLACEHOLDER.test(d.hdurl)) return null;
+function normalize(d, { anyMedia = false } = {}) {
+  if (!d || !d.hdurl || PLACEHOLDER.test(d.hdurl)) return null;
+  if (d.media_type !== "image" && !anyMedia) return null;
   return {
     id: `${KEY}:${d.date}`,
     source: KEY,
@@ -103,6 +104,28 @@ function archive() {
     if (!out.length) throw new Error("APOD archive unavailable");
     return out;
   });
+}
+
+/** True for APOD entries saved before the move, whose image links now dead-end. */
+export function isLegacyApod(item) {
+  return item?.source === KEY && /^apod:\d{4}-\d{2}-\d{2}$/.test(item.id || "") &&
+    !/science\.nasa\.gov/.test(item.imageUrl || "");
+}
+
+/**
+ * Look one day up on the new API by its date ("2024-10-15" → /apod-basic/241015).
+ * Resolves to the normalized image, or null when APOD has no usable image for
+ * that day; rejects on network trouble so the caller can try again later.
+ */
+export async function fetchApodDay(date) {
+  const [y, m, d] = date.split("-");
+  try {
+    // Video days still get their poster frame — better than a broken favorite.
+    return normalize(await fetchJson(`${API}/${y.slice(2)}${m}${d}`), { anyMedia: true });
+  } catch (e) {
+    if (/HTTP 404/.test(e?.message)) return null;
+    throw e;
+  }
 }
 
 export const apod = {

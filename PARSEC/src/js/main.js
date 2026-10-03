@@ -23,6 +23,7 @@ import { createSync } from "./features/sync.js";
 import { loadStations, onStationsChange, recordOpen, ipUrl } from "./features/stations.js";
 import { primeIconCache } from "./features/favicons.js";
 import { runOnboarding } from "./ui/onboarding.js";
+import { migrateLegacyApod } from "./features/migrate.js";
 
 const POOL_KEY = "pool";
 const POOL_TTL = 3 * 60 * 60 * 1000;
@@ -484,6 +485,9 @@ async function boot() {
   }
 
   openFromHash();
+
+  // Favorites saved before APOD moved get their new links (no-op once done).
+  migrateLegacyApod().catch((e) => console.info("Parsec: APOD migration will retry", e));
 
   // 1) Instant paint from last cached image (offline-friendly, zero network wait)
   const stored = (await storageGet(CURRENT_KEY))[CURRENT_KEY];
