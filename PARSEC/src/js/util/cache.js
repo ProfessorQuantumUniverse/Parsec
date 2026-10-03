@@ -34,3 +34,11 @@ export async function cached(key, ttlMs, producer) {
   await cacheSet(key, value, ttlMs);
   return value;
 }
+
+/** The raw cache entry, expired or not — for stale-while-revalidate reads. */
+export async function cacheEntry(key) {
+  const wrapKey = `cache:${key}`;
+  const entry = (await storageGet(wrapKey))[wrapKey];
+  if (!entry) return undefined;
+  return { ...entry, stale: Boolean(entry.expires && Date.now() > entry.expires) };
+}

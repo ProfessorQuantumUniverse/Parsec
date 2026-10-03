@@ -2,10 +2,10 @@
 
 import { $, el } from "./util/dom.js";
 import { BRAND } from "./brand.js";
-import { cacheGet, cacheSet, storageGet, storageSet } from "./util/cache.js";
+import { cacheEntry, cacheSet, storageGet, storageSet } from "./util/cache.js";
 import {
   loadSettings, getSettings, updateSettings, onSettingsChange,
-  isFavorite, toggleFavorite, pushHistory, getHistory,
+  isFavorite, toggleFavorite, pushHistory, getHistory, getSeenLatest, markLatestSeen,
 } from "./state.js";
 import { buildPool } from "./providers/index.js";
 import { initClock } from "./ui/clock.js";
@@ -25,7 +25,10 @@ import { primeIconCache } from "./features/favicons.js";
 import { runOnboarding } from "./ui/onboarding.js";
 
 const POOL_KEY = "pool";
-const POOL_TTL = 6 * 60 * 60 * 1000;
+const POOL_TTL = 3 * 60 * 60 * 1000;
+const POOL_RETRY_TTL = 15 * 60 * 1000; // some source failed — try again soon
+const POOL_VERSION = 2; // bump when the shape of pool entries changes
+const FRESH_WAIT = 1500; // ms a stale-pool boot waits for the network before using what it has
 const CURSOR_KEY = `${BRAND.ns}_cursor`;
 const CURRENT_KEY = `${BRAND.ns}_current`;
 const RECENT_MAX = 8; // avoid repeating the last N images when advancing
@@ -44,6 +47,9 @@ let current = null;
 let frontLayer = els.bgA;
 let starfield = null;
 let onboardingActive = false;
+let userNavigated = false; // the viewer picked an image themselves since this tab opened
+let poolRefreshing = null; // { sig, promise } of the network rebuild in flight
+let rotatedThisTab = false; // this tab already moved on to a new image when it opened
 
 /* ---------- background painting with crossfade + Ken Burns ---------- */
 
@@ -81,6 +87,7 @@ async function paint(image, animate = true) {
   info.setImage(image, fav);
   document.title = `${image.title} · ${BRAND.name}`;
   pushHistory(image);
+  if (image.latest) markLatestSeen(image.id);
   await storageSet({ [CURRENT_KEY]: image });
 }
 
@@ -122,9 +129,27 @@ async function showAt(i, { animate = true, record = true } = {}) {
   toast("None of the current images could be loaded. Check your connection.");
 }
 
-/** Advance to the next image the viewer hasn't seen recently. */
+/* Each source flags its newest upload as `latest`. Those jump the queue once,
+ * so today's APOD (and friends) actually get seen instead of drowning in the
+ * archive. APOD wins ties, then whatever was published most recently. */
+const freshRank = (img) => (img.source === "apod" ? 1e15 : 0) + (Date.parse(img.date) || 0);
+
+async function unseenLatestIndex({ source } = {}) {
+  const seen = new Set(await getSeenLatest());
+  let best = -1;
+  pool.forEach((img, i) => {
+    if (!img.latest || seen.has(img.id) || img.id === current?.id) return;
+    if (source && img.source !== source) return;
+    if (best < 0 || freshRank(img) > freshRank(pool[best])) best = i;
+  });
+  return best;
+}
+
+/** Advance to the next image: a fresh upload if there is one, else one not seen recently. */
 async function advance() {
   if (!pool.length) return;
+  const fresh = await unseenLatestIndex();
+  if (fresh >= 0) return showAt(fresh);
   const recent = new Set((await getHistory()).slice(0, RECENT_MAX).map((h) => h.id));
   let target = (index + 1) % pool.length;
   for (let step = 0; step < pool.length; step++) {
@@ -134,48 +159,80 @@ async function advance() {
   await showAt(target);
 }
 
-async function next() { await advance(); }
-async function prev() { await showAt(index - 1); }
+async function next() { userNavigated = true; await advance(); }
+async function prev() { userNavigated = true; await showAt(index - 1); }
 async function shuffle() {
   if (pool.length < 2) return;
+  userNavigated = true;
   let r = index;
   while (r === index) r = Math.floor(Math.random() * pool.length);
   await showAt(r);
 }
 
-/* ---------- pool building ---------- */
+/* ---------- pool building ----------
+ * Stale-while-revalidate: a tab always starts from whatever pool it has on
+ * disk, however old, and refreshes it in the background when it has expired
+ * or was built on an earlier day. Only a first run ever waits on the network. */
 
-async function refreshPool({ force = false } = {}) {
+function poolSig() {
+  return `v${POOL_VERSION}|` + getSettings().sources.slice().sort().join(",");
+}
+
+function dayStampOf(ts) {
+  const d = new Date(ts);
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+}
+
+/** The pool on disk, or null if there is none for the current sources. */
+async function loadCachedPool() {
+  const [entry, meta] = await Promise.all([cacheEntry(POOL_KEY), storageGet("pool_sig")]);
+  if (!entry || !Array.isArray(entry.value) || !entry.value.length || meta.pool_sig !== poolSig()) return null;
+  return { images: entry.value, stale: entry.stale || dayStampOf(entry.stored) !== nowDayStamp() };
+}
+
+function setPool(images) {
+  pool = images;
+  const found = current ? pool.findIndex((x) => x.id === current.id) : -1;
+  index = found >= 0 ? found : Math.min(index, Math.max(0, pool.length - 1));
+}
+
+/** Fetch every source and store the result. Resolves to the new images, or null. */
+function fetchPool() {
   const s = getSettings();
-  const sig = s.sources.slice().sort().join(",");
-  const cached = await cacheGet(POOL_KEY);
-  const meta = (await storageGet("pool_sig")).pool_sig;
+  const sig = poolSig();
+  if (poolRefreshing?.sig === sig) return poolRefreshing.promise;
+  const promise = buildPool(s.sources, s)
+    .then(async ({ images, errors }) => {
+      if (errors.length) console.info("Parsec: some sources failed", errors);
+      if (!images.length) return null;
+      await cacheSet(POOL_KEY, images, errors.length ? POOL_RETRY_TTL : POOL_TTL);
+      await storageSet({ pool_sig: sig });
+      return images;
+    })
+    .catch(() => null)
+    .finally(() => { if (poolRefreshing?.promise === promise) poolRefreshing = null; });
+  poolRefreshing = { sig, promise };
+  return promise;
+}
 
-  if (!force && cached && meta === sig) {
-    pool = cached;
-  } else {
-    try {
-      const { images, errors } = await buildPool(s.sources, s);
-      if (images.length) {
-        pool = images;
-        await cacheSet(POOL_KEY, pool, POOL_TTL);
-        await storageSet({ pool_sig: sig });
-        if (errors.length) console.info("Parsec: some sources failed", errors);
-      } else if (cached) {
-        pool = cached;
-        toast("Couldn't reach some sources — showing cached images.");
-      } else {
-        throw new Error("empty pool");
-      }
-    } catch {
-      if (cached) pool = cached;
-      else { toast("Couldn't reach the cosmos. It'll retry on your next tab."); return; }
-    }
+/** Make sure there is a pool. With `force`, wait for a network rebuild. */
+async function refreshPool({ force = false } = {}) {
+  const cached = await loadCachedPool();
+  if (cached && !force) {
+    setPool(cached.images);
+    if (cached.stale) fetchPool().then((images) => images && setPool(images));
+    return;
   }
-  if (current) {
-    const found = pool.findIndex((x) => x.id === current.id);
-    if (found >= 0) index = found;
-  }
+  const images = await fetchPool();
+  if (images) setPool(images);
+  else if (cached) { setPool(cached.images); toast("Couldn't reach some sources — showing cached images."); }
+  else if (!pool.length) toast("Couldn't reach the cosmos. It'll retry on your next tab.");
+}
+
+/** Index of the image a fresh start should open with. */
+async function firstPick(fallback = 0) {
+  const fresh = await unseenLatestIndex();
+  return fresh >= 0 ? fresh : fallback;
 }
 
 /* ---------- presentation ---------- */
@@ -373,8 +430,9 @@ const stationsPanel = initStationsPanel(els.overlay, {
 });
 const settings = initSettings(els.overlay, {
   openGroundControl: () => stationsPanel.open(),
-  onSourcesChanged: async () => { await refreshPool({ force: true }); await showAt(0); toast("Sources updated."); },
+  onSourcesChanged: async () => { await refreshPool({ force: true }); await showAt(await firstPick()); toast("Sources updated."); },
   onSelectImage: async (image) => {
+    userNavigated = true;
     const found = pool.findIndex((x) => x.id === image.id);
     if (found >= 0) await showAt(found);
     else { pool.unshift(image); index = 0; await paint(image); await saveCursor(); }
@@ -402,7 +460,7 @@ async function runIntro() {
   applyAll(getSettings());
   await poolPromise.catch(() => {});
   await refreshPool({ force: true }); // sources may have changed during intro
-  await showAt(0);
+  await showAt(await firstPick());
 }
 
 /* ---------- boot ---------- */
@@ -431,20 +489,71 @@ async function boot() {
   const stored = (await storageGet(CURRENT_KEY))[CURRENT_KEY];
   if (stored) { try { await paint(stored, false); } catch {} }
 
-  // 2) Build/refresh the pool
-  await refreshPool();
+  // 2) Pool: cached copy right away, network refresh in the background if it's old
+  const cached = await loadCachedPool();
+  let refresh = null;
+  if (cached) {
+    setPool(cached.images);
+    if (cached.stale) {
+      refresh = fetchPool();
+      // Usually the network is quick — then this tab starts on the fresh pool directly.
+      const quick = await Promise.race([refresh, new Promise((r) => setTimeout(() => r(undefined), FRESH_WAIT))]);
+      if (quick !== undefined) { if (quick) setPool(quick); refresh = null; }
+    }
+  } else {
+    await refreshPool({ force: true });
+  }
   if (!pool.length) return;
 
   // 3) First selection vs. cadence-driven rotation
+  await rotateOnOpen(s.cadence);
+
+  // 4) The fresh pool arrived late: swap it in, and show a new upload if one came with it
+  if (refresh) {
+    const images = await refresh;
+    if (!images) return;
+    setPool(images);
+    if (!userNavigated) await showLateArrival(s.cadence);
+  }
+}
+
+
+async function rotateOnOpen(cadence) {
   const cursor = (await storageGet(CURSOR_KEY))[CURSOR_KEY];
   if (!current) {
-    await showAt(cursor?.index ?? 0, { animate: true });
-  } else if (shouldAdvance(cursor, s.cadence)) {
+    await showAt(await firstPick(cursor?.index ?? 0));
+    rotatedThisTab = true;
+  } else if (shouldAdvance(cursor, cadence)) {
     await advance();
-  } else {
+    rotatedThisTab = true;
+  } else if (!(await showFreshApod(cadence))) {
     preload(pool[(index + 1) % pool.length].imageUrl).catch(() => {});
   }
 }
+
+/** Even when it isn't time to rotate yet, a brand-new APOD gets its moment the day it appears. */
+async function showFreshApod(cadence) {
+  if (cadence === "manual") return false;
+  const i = await unseenLatestIndex({ source: "apod" });
+  if (i < 0) return false;
+  await showAt(i);
+  rotatedThisTab = true;
+  return true;
+}
+
+async function showLateArrival(cadence) {
+  if (!rotatedThisTab) return showFreshApod(cadence);
+  // This tab already rotated — swap to a fresh upload, if the refresh brought one.
+  const i = await unseenLatestIndex();
+  if (i >= 0) await showAt(i);
+}
+
+/** A tab left open for hours quietly picks up new images when you come back to it. */
+document.addEventListener("visibilitychange", async () => {
+  if (document.visibilityState !== "visible" || onboardingActive || !pool.length) return;
+  const cached = await loadCachedPool();
+  if (!cached || cached.stale) fetchPool().then((images) => images && setPool(images));
+});
 
 onSettingsChange((s) => applyAll(s));
 onStationsChange(() => {

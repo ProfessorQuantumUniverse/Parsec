@@ -3,7 +3,7 @@ import { cached } from "../util/cache.js";
 
 const KEY = "epic";
 const LABEL = "NASA EPIC · Earth";
-const TTL = 6 * 60 * 60 * 1000;
+const TTL = 2 * 60 * 60 * 1000;
 
 function imageUrl(item) {
   // item.image = "epic_1b_20260713005516", item.date = "2026-07-13 00:50:27"
@@ -17,7 +17,7 @@ export const epic = {
   async fetchList() {
     return cached(`feed:${KEY}`, TTL, async () => {
       const items = await fetchJson("https://epic.gsfc.nasa.gov/api/natural");
-      return items.map((it) => {
+      const out = items.map((it) => {
         const c = it.centroid_coordinates || {};
         const lat = typeof c.lat === "number" ? c.lat.toFixed(1) : "?";
         const lon = typeof c.lon === "number" ? c.lon.toFixed(1) : "?";
@@ -37,6 +37,10 @@ export const epic = {
           meta: { home: "https://epic.gsfc.nasa.gov/", lat, lon },
         };
       });
+      // The API returns the most recent day's set; flag its newest frame.
+      const newest = out.reduce((a, b) => (Date.parse(b.date) > Date.parse(a.date) ? b : a), out[0]);
+      if (newest) newest.latest = true;
+      return out;
     });
   },
 };

@@ -231,11 +231,6 @@ export function initSettings(overlayRoot, { onSourcesChanged, onSelectImage, req
   }
 
   function renderData(body) {
-    body.append(el("p", { class: "set-section-hint", text:
-      "Optional NASA API key (free at api.nasa.gov) lifts APOD's shared rate limit. Everything works without it." }));
-    body.append(el("input", { class: "set-text", type: "text", placeholder: "NASA API key (optional)", value: get().nasaApiKey,
-      onchange: (e) => set({ nasaApiKey: e.target.value.trim() }) }));
-
     const exportBtn = el("button", { class: "btn", text: "Export settings & favorites" });
     exportBtn.addEventListener("click", async () => {
       const data = await exportConfig();
