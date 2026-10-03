@@ -8,6 +8,7 @@ import { getStations, replaceAll } from "./features/stations.js";
 const SETTINGS_KEY = `${BRAND.ns}_settings_v1`;
 const FAV_KEY = `${BRAND.ns}_favorites`;
 const HISTORY_KEY = `${BRAND.ns}_history`;
+const SEEN_LATEST_KEY = `${BRAND.ns}_seen_latest`;
 
 export const ALL_SOURCES = ["apod", "hubble", "webb", "eso", "epic", "nasalib", "nasaiotd"];
 
@@ -62,8 +63,6 @@ export const DEFAULTS = {
   gcSync: false, // mirror the station list through the browser's own sync
   // location (for sun times) — manual or detected
   location: null, // { lat, lon, label }
-  // NASA API key (optional, bring-your-own)
-  nasaApiKey: "",
 };
 
 export const SEARCH_ENGINES = {
@@ -155,6 +154,21 @@ export async function pushHistory(image) {
 export async function getHistory() {
   const d = await storageGet(HISTORY_KEY);
   return d[HISTORY_KEY] || [];
+}
+
+/* ------ Fresh uploads already shown ------- */
+/* Each source's newest image is shown first, once. This remembers which ones
+ * have had their turn, independently of the (much shorter) history above. */
+
+export async function getSeenLatest() {
+  const d = await storageGet(SEEN_LATEST_KEY);
+  return d[SEEN_LATEST_KEY] || [];
+}
+
+export async function markLatestSeen(id) {
+  const list = await getSeenLatest();
+  if (list.includes(id)) return;
+  await storageSet({ [SEEN_LATEST_KEY]: [id, ...list].slice(0, 200) });
 }
 
 /* ---------- Import / export ---------- */

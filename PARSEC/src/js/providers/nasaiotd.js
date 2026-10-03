@@ -5,7 +5,7 @@ import { cached } from "../util/cache.js";
 
 const KEY = "nasaiotd";
 const LABEL = "NASA Image of the Day";
-const TTL = 6 * 60 * 60 * 1000;
+const TTL = 2 * 60 * 60 * 1000; // a new image most weekdays
 
 export const nasaiotd = {
   key: KEY,
@@ -13,7 +13,7 @@ export const nasaiotd = {
   async fetchList() {
     return cached(`feed:${KEY}`, TTL, async () => {
       const items = await fetchRss("https://www.nasa.gov/feeds/iotd-feed/");
-      return items
+      const out = items
         .filter((i) => i.image)
         .map((i) => {
           const pub = i.raw?.querySelector("pubDate")?.textContent?.trim();
@@ -32,6 +32,8 @@ export const nasaiotd = {
             meta: { home: "https://www.nasa.gov/image-of-the-day/" },
           };
         });
+      if (out[0]) out[0].latest = true; // newest first
+      return out;
     });
   },
 };

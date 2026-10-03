@@ -10,7 +10,6 @@ export function runOnboarding(root) {
       name: getSettings().name || "",
       sources: [...ALL_SOURCES],
       location: getSettings().location || null,
-      nasaApiKey: getSettings().nasaApiKey || "",
     };
     let step = 0;
 
@@ -25,7 +24,7 @@ export function runOnboarding(root) {
     startStars(overlay.querySelector(".onb-stars"));
     requestAnimationFrame(() => overlay.classList.add("show"));
 
-    const STEPS = [stepWelcome, stepName, stepSources, stepLocation, stepApiKey, stepFoss];
+    const STEPS = [stepWelcome, stepName, stepSources, stepLocation, stepFoss];
 
     function renderDots() {
       clear(dots);
@@ -54,7 +53,6 @@ export function runOnboarding(root) {
         name: draft.name.trim().slice(0, 40),
         sources: draft.sources.length ? draft.sources : [...ALL_SOURCES],
         location: draft.location,
-        nasaApiKey: draft.nasaApiKey.trim(),
         showSun: draft.location ? true : getSettings().showSun,
       }).then(() => {
         setTimeout(() => { overlay.remove(); resolve(); }, 700);
@@ -170,22 +168,6 @@ export function runOnboarding(root) {
       ]);
     }
 
-    function stepApiKey() {
-      const input = el("input", { class: "onb-input", type: "text", placeholder: "NASA API key (optional)",
-        value: draft.nasaApiKey, spellcheck: false });
-      input.addEventListener("input", () => (draft.nasaApiKey = input.value.trim()));
-      input.addEventListener("keydown", (e) => { if (e.key === "Enter") go(5); });
-      return el("div", {}, [
-        el("div", { class: "onb-step-num", text: "04" }),
-        el("h2", { class: "onb-h2", text: "Power up NASA APOD" }),
-        el("p", { class: "onb-sub", html:
-          "The Astronomy Picture of the Day works out of the box on a shared demo key. For higher rate limits, paste a <b>free</b> personal key from " +
-          "<a href=\"https://api.nasa.gov\" target=\"_blank\" rel=\"noopener\">api.nasa.gov</a> — it takes about 30 seconds. Completely optional." }),
-        input,
-        footer("Continue", () => go(5), { skip: () => go(5), skipLabel: "Skip" }),
-      ]);
-    }
-
     function stepFoss() {
       const points = [
         ["No tracking", "Zero analytics, telemetry or fingerprinting. Ever."],
@@ -194,7 +176,7 @@ export function runOnboarding(root) {
         ["100% open source", "MIT-licensed. Read every line, fork it, make it yours."],
       ];
       return el("div", {}, [
-        el("div", { class: "onb-step-num", text: "05" }),
+        el("div", { class: "onb-step-num", text: "04" }),
         el("h2", { class: "onb-h2", text: "Free & open, forever" }),
         el("p", { class: "onb-sub", text:
           "Your new tab is opened thousands of times a year. Software that intimate should answer to you — not to advertisers or a subscription. That's why " + BRAND.name + " is free and open source." }),

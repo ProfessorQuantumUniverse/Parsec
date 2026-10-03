@@ -17,7 +17,7 @@ export function makeDjangoplicity({ key, label, feedUrl, home }) {
   async function list() {
     return cached(`feed:${key}`, FEED_TTL, async () => {
       const items = await fetchRss(feedUrl);
-      return items
+      const out = items
         .filter((i) => i.image)
         .map((i) => ({
           id: `${key}:${i.link}`,
@@ -32,6 +32,8 @@ export function makeDjangoplicity({ key, label, feedUrl, home }) {
           date: pubDate(i.raw),
           meta: { home },
         }));
+      if (out[0]) out[0].latest = true; // feeds list the newest release first
+      return out;
     });
   }
 

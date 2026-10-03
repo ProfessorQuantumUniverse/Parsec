@@ -27,7 +27,7 @@ You can mix and match these in **Settings → Sources**. The extension automatic
 
 | Source | What it actually is |
 | :--- | :--- |
-| **NASA APOD** | Astronomy Picture of the Day. Includes random archive days to keep it interesting. |
+| **NASA APOD** | Astronomy Picture of the Day, from its new home at [science.nasa.gov/apod](https://science.nasa.gov/apod/). Today's picture plus random days from 30 years of archive. |
 | **Hubble** | ESA’s Hubble *Picture of the Week*. |
 | **James Webb** | ESA’s James Webb image releases (unbelievable detail). |
 | **ESO** | European Southern Observatory *Picture of the Week* (mostly ground-based telescopes in Chile). |
@@ -35,7 +35,9 @@ You can mix and match these in **Settings → Sources**. The extension automatic
 | **NASA Library** | Searches rotating deep-sky queries from NASA’s media library. |
 | **NASA Image of the Day** | The classic, manually curated NASA daily feature feed. |
 
-All feeds are free and don't require an API key. APOD uses a shared demo key out of the box; if you hit rate limits, you can generate your own free key at [api.nasa.gov](https://api.nasa.gov) and drop it into **Settings → Data**.
+All feeds are free and don't require an API key.
+
+**Always fresh, never waiting.** A new tab opens instantly on the images Parsec already has and refreshes them in the background once they are a few hours old or from an earlier day. Each source's newest upload (today's APOD, the latest Hubble/Webb/ESO release, the newest Earth from EPIC…) jumps the queue once, so you actually see it the day it appears, and the APOD archive mix is rerolled twice a day for variety.
 
 ---
 
