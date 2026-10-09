@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  WEB_EXT_VERSION: 10.7.0
+
+jobs:
+  lint:
+    name: Lint extension
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          # no package.json/lockfile; web-ext is pinned in this file
+          cache-dependency-path: .github/workflows/ci.yml
+
+      - name: Validate manifest.json and referenced files
+        run: node .github/scripts/check-extension.mjs manifest PARSEC
+
+      - name: JavaScript syntax check (as ES modules)
+        # plain `node --check file.js` silently passes ESM files with syntax
+        # errors on Node 22, so every file is checked as a module via stdin.
+        run: |
+          status=0
+          while IFS= read -r -d '' f; do
+            if ! node --input-type=module --check < "$f"; then
+              echo "::error file=$f::syntax error in $f"
+              status=1
+            fi
+          done < <(find PARSEC -name '*.js' -print0)
+          exit $status
+
+      - name: web-ext lint (errors fail, warnings don't)
+        run: |
+          npx --yes "web-ext@${WEB_EXT_VERSION}" lint --source-dir PARSEC --output json > web-ext-lint.json || true
+          node .github/scripts/check-extension.mjs lint web-ext-lint.json
